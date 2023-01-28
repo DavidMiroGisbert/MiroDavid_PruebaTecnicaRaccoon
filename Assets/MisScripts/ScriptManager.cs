@@ -14,11 +14,16 @@ public class ScriptManager : MonoBehaviour
     public AudioSource source;
     public AudioClip sonidoDisparo;
 
+    RaycastHit hit; //Sirve para detectar colisiones del raycast
+
+    public List <LineRenderer> trayectoriaDisparo; //Lista para dibujar los rayos de las armas y así ver dónde hemos disparado y el alcance de las armas
     public void Start()
     {
         cooldownArmaCorta = true;
         cooldownArmaLarga = true;
+
     }
+
     //------------Asignación del valor máximo de los sliders así como la asignación de su valor al máximo------------//
     public void AsignarValorSliders()
     {
@@ -30,24 +35,31 @@ public class ScriptManager : MonoBehaviour
         vidasObjetivosUI[2].value = Objetivos.objetivo3.vida;
     }
 
-    //------------Función para el disparo------------//
-    public void DisparoPorRayCast()
+    //------------Funciones para el disparo------------//
+
+    /*Disparo mediante Raycast que tiene en cuenta el lugar de origen (punta del cañón), la dirección, el hit (si golpea en algo),
+      la distancia hasta la que llega que en este caso viene dado por el arma y la layer a la que afecta.
+      En todo momento comprueba si ha dado al objetivo, a otro objeto o al aire para poder dibujar una línea que sirva de guía*/
+
+    public void DisparoArmaLarga()
     {
-        /*Disparo mediante Raycast que tiene en cuenta el lugar de origen (punta del cañón), la dirección, el hit (si golpea en algo),
-        la distancia hasta la que llega que en este caso viene dado por el arma y la layer a la que afecta*/
-
-
-        RaycastHit hit;
-
                             //------------Disparo con arma larga------------//
 
-        if (salidaRay[0].tag == "ArmaLarga" && cooldownArmaLarga == true) //Comprobación de si puede disparar y con qué arma lo hace
+
+        if (cooldownArmaLarga == true) //Comprobación de si puede disparar
         {
-            source.PlayOneShot(sonidoDisparo);
+                source.PlayOneShot(sonidoDisparo);
+
+            cooldownArmaLarga = false;
+
+            StartCoroutine(DibujarRayo());//Inicio del courutine para dibujar el disparo
             StartCoroutine(Cooldown());//Inicio del courutine para que no se pueda spamear el disparo
+
+            //------------Comprobación de si ha golpeado al objetivo------------
 
             if (Physics.Raycast(salidaRay[0].transform.position, salidaRay[0].transform.forward, out hit, Armas.armaLargoAlcance.distancia, 1<<3))
             {
+
                 //------------Comprobaciones de a qué objetivo ha dado------------//
 
                 if (hit.transform.tag == "Objetivo1")
@@ -70,17 +82,29 @@ public class ScriptManager : MonoBehaviour
                 Muerte();
                 RestarVidaUI();
             }
-
+           
         }
 
-                        //------------Disparo con arma corta------------//
+    }
+    public void DisparoArmaCorta()
+    {
 
-        if (salidaRay[1].tag == "ArmaCorta" && cooldownArmaCorta == true) //Comprobación de si puede disparar y con qué arma lo hace
+        //------------Disparo con arma corta------------//
+
+        if (cooldownArmaCorta == true) //Comprobación de si puede disparar 
         {
-            source.PlayOneShot(sonidoDisparo);
-            StartCoroutine(Cooldown()); //Inicio del courutine para que no se pueda spamear el disparo
 
-            if (Physics.Raycast(salidaRay[1].transform.position, salidaRay[1].transform.forward, out hit, Armas.armaCortoAlcance.distancia, 1 << 3)) 
+            source.PlayOneShot(sonidoDisparo);
+
+            cooldownArmaCorta = false;
+
+            StartCoroutine(DibujarRayo());//Inicio del courutine para dibujar el disparo
+            StartCoroutine(Cooldown());//Inicio del courutine para que no se pueda spamear el disparo
+
+
+            //------------Comprobación de si ha golpeado al objetivo------------
+
+            if (Physics.Raycast(salidaRay[1].transform.position, salidaRay[1].transform.forward, out hit, Armas.armaCortoAlcance.distancia, 1 << 3))
             {
                 //------------Comprobaciones de a qué objetivo ha dado------------//
 
@@ -105,24 +129,46 @@ public class ScriptManager : MonoBehaviour
                 RestarVidaUI();
             }
         }
-
-
     }
+
 
     //------------Courutine para el cooldown que cambia el tiempo según el cooldown del arma------------//
     IEnumerator Cooldown()
     {
-        if (cooldownArmaLarga == true)
+        if (cooldownArmaLarga == false)
         {
-            cooldownArmaLarga = false;
             yield return new WaitForSeconds(Armas.armaLargoAlcance.cooldown);
             cooldownArmaLarga = true;
         }
-        if (cooldownArmaCorta == true)
+        if (cooldownArmaCorta == false)
         {
-            cooldownArmaCorta = false;
             yield return new WaitForSeconds(Armas.armaCortoAlcance.cooldown);
             cooldownArmaCorta = true;
+        }
+    }
+
+    //------------Courutine para dibujar un rayo que muestra la trayectoria del raycast------------//
+    IEnumerator DibujarRayo()
+    {
+        if (cooldownArmaLarga == false)
+        {
+            trayectoriaDisparo[0].enabled = true; //Hace visible el rayo
+            trayectoriaDisparo[0].SetPosition(0, salidaRay[0].transform.position); //Define el punto de origen de la línea
+            trayectoriaDisparo[0].SetPosition(1, salidaRay[0].transform.forward * Armas.armaLargoAlcance.distancia); //Define el punto de destino de la línea
+
+            yield return new WaitForSeconds(0.1f);
+
+            trayectoriaDisparo[0].enabled = false; //Desactiva el rayo
+        }
+        if (cooldownArmaCorta == false)
+        {
+            trayectoriaDisparo[1].enabled = true;
+            trayectoriaDisparo[1].SetPosition(0, salidaRay[1].transform.position);
+            trayectoriaDisparo[1].SetPosition(1, salidaRay[1].transform.forward * Armas.armaCortoAlcance.distancia);
+
+            yield return new WaitForSeconds(0.1f);
+
+            trayectoriaDisparo[1].enabled = false;
         }
     }
 

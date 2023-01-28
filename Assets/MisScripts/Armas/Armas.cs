@@ -10,8 +10,8 @@ public class Armas : MonoBehaviour
 
     void Start()
     {
-            armaLargoAlcance = new ArmaParent(10, 10, 0.5f);
+            armaLargoAlcance = new ArmaParent(10, 10, 1f);
         
-            armaCortoAlcance = new ArmaParent(50, 4.5f, 1.5f);          
+            armaCortoAlcance = new ArmaParent(50, 4.5f, 4f);          
     }
 }
